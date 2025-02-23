@@ -16,6 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { format } from "date-fns";
 
 const profileSchema = z.object({
   username: z.string().min(3),
@@ -40,10 +41,27 @@ export default function ProfilePage() {
     console.log(data);
   };
 
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-[400px]">
+          <CardHeader>
+            <CardTitle>Please Login</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full">
+              <a href="/auth">Go to Login</a>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <main className="container pt-20 pb-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -99,15 +117,29 @@ export default function ProfilePage() {
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Member Since</p>
-                  <p className="text-lg font-medium">January 1, 2024</p>
+                  <p className="text-lg font-medium">
+                    {user.memberSince ? format(new Date(user.memberSince), 'PPP') : 'N/A'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Last Login</p>
-                  <p className="text-lg font-medium">Today at 12:00 PM</p>
+                  <p className="text-lg font-medium">
+                    {user.lastLogin ? format(new Date(user.lastLogin), 'PPp') : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Tasks Completed</p>
+                  <p className="text-lg font-medium">{user.taskCount}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Success Rate</p>
+                  <p className="text-lg font-medium text-green-500">{user.successRate}%</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Account Status</p>
-                  <p className="text-lg font-medium text-green-500">Active</p>
+                  <p className="text-lg font-medium text-green-500">
+                    {user.isVerified ? 'Verified' : 'Pending Verification'}
+                  </p>
                 </div>
               </CardContent>
             </Card>

@@ -8,6 +8,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Home,
   LayoutDashboard,
   User,
@@ -15,11 +20,14 @@ import {
   Package,
   Download,
   LogOut,
+  Menu,
 } from "lucide-react";
+import { useState } from "react";
 
 export function Navbar() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
     { href: "/", icon: Home, label: "Home" },
@@ -30,6 +38,26 @@ export function Navbar() {
     { href: "/download", icon: Download, label: "Download" },
   ];
 
+  const NavLinks = () => (
+    <>
+      {navItems.map(({ href, icon: Icon, label }) => (
+        <Link
+          key={href}
+          href={href}
+          onClick={() => setIsOpen(false)}
+          className={`flex items-center space-x-2 transition-colors hover:text-primary ${
+            location === href
+              ? "text-foreground"
+              : "text-muted-foreground"
+          }`}
+        >
+          <Icon className="h-4 w-4" />
+          <span>{label}</span>
+        </Link>
+      ))}
+    </>
+  );
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
       <div className="container flex h-14 items-center">
@@ -39,22 +67,24 @@ export function Navbar() {
           </span>
         </Link>
 
-        <div className="flex items-center space-x-6 text-sm font-medium">
-          {navItems.map(({ href, icon: Icon, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center space-x-2 transition-colors hover:text-primary ${
-                location === href
-                  ? "text-foreground"
-                  : "text-muted-foreground"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{label}</span>
-            </Link>
-          ))}
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center space-x-6 text-sm font-medium">
+          <NavLinks />
         </div>
+
+        {/* Mobile Navigation */}
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetTrigger asChild className="md:hidden">
+            <Button variant="ghost" size="icon">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64">
+            <div className="flex flex-col space-y-4 mt-6">
+              <NavLinks />
+            </div>
+          </SheetContent>
+        </Sheet>
 
         <div className="ml-auto flex items-center space-x-4">
           <DropdownMenu>
@@ -63,7 +93,7 @@ export function Navbar() {
                 variant="ghost"
                 className="relative h-8 w-8 rounded-full"
               >
-                <span className="font-semibold">{user?.username[0]}</span>
+                <span className="font-semibold">{user?.username?.[0] ?? '?'}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
