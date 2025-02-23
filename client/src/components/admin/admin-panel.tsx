@@ -224,7 +224,7 @@ export function AdminPanel() {
             Manage your site's content and settings
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="max-h-[70vh] overflow-y-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid grid-cols-4 gap-4 mb-8">
               <TabsTrigger value="content" className="flex items-center gap-2">
