@@ -13,8 +13,6 @@ import SettingsPage from "@/pages/settings-page";
 import ProductsPage from "@/pages/products-page";
 import DownloadPage from "@/pages/download-page";
 import { AdminPanel } from "@/components/admin/admin-panel";
-import "./App.css";
-import "./lib/i18n";
 
 function Router() {
   return (
