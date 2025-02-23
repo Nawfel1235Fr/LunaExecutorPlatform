@@ -18,9 +18,12 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
   const [autoUpdate, setAutoUpdate] = useState(false);
-  const [language, setLanguage] = useState('fr');
+  const [language, setLanguage] = useState(localStorage.getItem('language') || 'fr');
+  const { i18n } = useTranslation();
 
   const saveSettings = () => {
+    localStorage.setItem('language', language);
+    i18n.changeLanguage(language);
     toast({
       title: "Settings saved",
       description: "Your preferences have been updated successfully.",
