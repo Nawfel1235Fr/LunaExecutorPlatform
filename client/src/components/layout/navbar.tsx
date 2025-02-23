@@ -103,9 +103,12 @@ export function Navbar() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem
                 onClick={() => {
-                  const navbar = document.querySelector('nav');
-                  navbar?.classList.add('animate-fadeOut');
-                  setTimeout(() => logoutMutation.mutate(), 500);
+                  const content = document.querySelector('main');
+                  content?.classList.add('animate-fadeOut');
+                  setTimeout(() => {
+                    logoutMutation.mutate();
+                    window.location.href = '/';
+                  }, 500);
                 }}
               >
                 <LogOut className="mr-2 h-4 w-4" />
