@@ -1,4 +1,4 @@
-import { pgTable, text, serial, boolean, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, boolean, timestamp, integer, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -33,6 +33,23 @@ export const userStats = pgTable("user_stats", {
   failureCount: integer("failure_count").notNull().default(0),
 });
 
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }),
+  imageUrl: text("image_url"),
+  version: text("version"),
+  downloadUrl: text("download_url"),
+  badge: text("badge"),
+  badgeVariant: text("badge_variant"),
+  buttonText: text("button_text"),
+  buttonVariant: text("button_variant"),
+  features: text("features").array(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users)
   .pick({
     username: true,
@@ -44,7 +61,15 @@ export const insertUserSchema = createInsertSchema(users)
     email: z.string().email(),
   });
 
+export const insertProductSchema = createInsertSchema(products)
+  .extend({
+    features: z.array(z.string()),
+    price: z.number().min(0),
+  });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type UserStat = typeof userStats.$inferSelect;
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = z.infer<typeof insertProductSchema>;
