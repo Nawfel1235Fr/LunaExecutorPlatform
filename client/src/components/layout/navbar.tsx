@@ -95,9 +95,9 @@ export function Navbar() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="relative h-8 w-8 rounded-full hover:glow-primary"
+                className="relative px-3 rounded-full hover:glow-primary"
               >
-                <span className="font-semibold">{user?.username?.[0] ?? '?'}</span>
+                <span className="font-semibold">{user?.username ?? '?'}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
