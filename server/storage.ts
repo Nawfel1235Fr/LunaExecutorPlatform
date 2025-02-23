@@ -1,4 +1,4 @@
-import { User, InsertUser, ChatMessage } from "@shared/schema";
+import { User, InsertUser, ChatMessage, UserStat } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { randomBytes } from "crypto";
@@ -14,21 +14,26 @@ export interface IStorage {
   updateUser(id: number, data: Partial<User>): Promise<User>;
   saveChatMessage(message: Omit<ChatMessage, "id">): Promise<ChatMessage>;
   getChatHistory(limit?: number): Promise<ChatMessage[]>;
+  getUserStats(userId: number): Promise<UserStat[]>;
   sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private chatMessages: Map<number, ChatMessage>;
+  private userStats: Map<number, UserStat[]>;
   private currentId: number;
   private currentChatId: number;
+  private currentStatId: number;
   sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
     this.chatMessages = new Map();
+    this.userStats = new Map();
     this.currentId = 1;
     this.currentChatId = 1;
+    this.currentStatId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
@@ -51,14 +56,32 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId++;
     const verificationToken = randomBytes(32).toString("hex");
+    const now = new Date();
     const user: User = {
       ...insertUser,
       id,
       isVerified: false,
       isAdmin: false,
       verificationToken,
+      memberSince: now,
+      lastLogin: now,
+      taskCount: 0,
+      successRate: 100,
     };
     this.users.set(id, user);
+
+    // Initialize user stats
+    this.userStats.set(id, [
+      {
+        id: this.currentStatId++,
+        userId: id,
+        date: now,
+        executionsCount: 0,
+        successCount: 0,
+        failureCount: 0,
+      }
+    ]);
+
     return user;
   }
 
@@ -90,6 +113,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.chatMessages.values())
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, limit);
+  }
+
+  async getUserStats(userId: number): Promise<UserStat[]> {
+    return this.userStats.get(userId) || [];
   }
 }
 

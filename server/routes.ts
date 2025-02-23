@@ -38,5 +38,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(history);
   });
 
+  app.get("/api/user/stats", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const stats = await storage.getUserStats(req.user.id);
+    res.json(stats);
+  });
+
   return httpServer;
 }
