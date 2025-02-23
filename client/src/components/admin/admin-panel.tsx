@@ -225,6 +225,11 @@ export function AdminPanel() {
           </CardDescription>
         </CardHeader>
         <CardContent className="max-h-[70vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <Button variant="outline" onClick={() => window.location.href = '/'}>
+              Retour à l'accueil
+            </Button>
+          </div>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid grid-cols-4 gap-4 mb-8">
               <TabsTrigger value="content" className="flex items-center gap-2">
