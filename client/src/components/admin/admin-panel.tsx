@@ -29,7 +29,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Palette, Users, Settings, FileText, Plus, Pencil, Image as ImageIcon } from "lucide-react";
+import { Palette, Users, Settings, FileText, Plus, Pencil, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -39,41 +39,140 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { Product, insertProductSchema } from "@shared/schema";
 
-
-const themeSchema = z.object({
-  primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, {
-    message: "Must be a valid hex color",
-  }),
-  fontFamily: z.string().min(1),
-  borderRadius: z.string(),
-});
-
-const siteSettingsSchema = z.object({
-  siteName: z.string().min(1),
-  description: z.string(),
-  contactEmail: z.string().email(),
-});
-
-const contentSchema = z.object({
-  title: z.string().min(1),
-  description: z.string(),
-  price: z.string().optional(),
-  imageUrl: z.string().url().optional(),
-  version: z.string().optional(),
-  downloadUrl: z.string().url().optional(),
-});
-
-type ThemeSettings = z.infer<typeof themeSchema>;
-type SiteSettings = z.infer<typeof siteSettingsSchema>;
-type ContentFormData = z.infer<typeof contentSchema>;
+type ContentFormData = z.infer<typeof insertProductSchema>;
 
 export function AdminPanel() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("theme");
-  const [editingItem, setEditingItem] = useState<ContentFormData | null>(null);
+  const [activeTab, setActiveTab] = useState("content");
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const themeForm = useForm<ThemeSettings>({
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ["/api/products"],
+  });
+
+  const createProductMutation = useMutation({
+    mutationFn: async (data: ContentFormData) => {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, price: String(data.price) }),
+      });
+      if (!res.ok) throw new Error("Failed to create product");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Success",
+        description: "Product created successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<Product> }) => {
+      const res = await fetch(`/api/products/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, price: String(data.price) }),
+      });
+      if (!res.ok) throw new Error("Failed to update product");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Success",
+        description: "Product updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteProductMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/products/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete product");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Success",
+        description: "Product deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const form = useForm<ContentFormData>({
+    resolver: zodResolver(insertProductSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      price: 0,
+      features: [],
+    },
+  });
+
+  const onSubmit = (data: ContentFormData) => {
+    if (editingProduct) {
+      updateProductMutation.mutate({
+        id: editingProduct.id,
+        data: {
+          ...data,
+          features: data.features.filter(Boolean),
+        },
+      });
+    } else {
+      createProductMutation.mutate({
+        ...data,
+        features: data.features.filter(Boolean),
+      });
+    }
+    form.reset();
+    setEditingProduct(null);
+  };
+
+  const themeSchema = z.object({
+    primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, {
+      message: "Must be a valid hex color",
+    }),
+    fontFamily: z.string().min(1),
+    borderRadius: z.string(),
+  });
+
+  const siteSettingsSchema = z.object({
+    siteName: z.string().min(1),
+    description: z.string(),
+    contactEmail: z.string().email(),
+  });
+
+  const themeForm = useForm<z.infer<typeof themeSchema>>({
     resolver: zodResolver(themeSchema),
     defaultValues: {
       primaryColor: "#3b82f6",
@@ -82,7 +181,7 @@ export function AdminPanel() {
     },
   });
 
-  const siteSettingsForm = useForm<SiteSettings>({
+  const siteSettingsForm = useForm<z.infer<typeof siteSettingsSchema>>({
     resolver: zodResolver(siteSettingsSchema),
     defaultValues: {
       siteName: "LunaExecutor",
@@ -91,40 +190,18 @@ export function AdminPanel() {
     },
   });
 
-  const contentForm = useForm<ContentFormData>({
-    resolver: zodResolver(contentSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      price: "",
-      imageUrl: "",
-      version: "",
-      downloadUrl: "",
-    },
-  });
-
-  const onThemeSubmit = (data: ThemeSettings) => {
+  const onThemeSubmit = (data: z.infer<typeof themeSchema>) => {
     toast({
       title: "Theme updated",
       description: "The site theme has been updated successfully.",
     });
-    console.log("Theme settings:", data);
   };
 
-  const onSiteSettingsSubmit = (data: SiteSettings) => {
+  const onSiteSettingsSubmit = (data: z.infer<typeof siteSettingsSchema>) => {
     toast({
       title: "Settings updated",
       description: "The site settings have been updated successfully.",
     });
-    console.log("Site settings:", data);
-  };
-
-  const onContentSubmit = (data: ContentFormData) => {
-    toast({
-      title: "Content updated",
-      description: "The content has been updated successfully.",
-    });
-    console.log("Content data:", data);
   };
 
   return (
@@ -138,12 +215,16 @@ export function AdminPanel() {
         <CardHeader>
           <CardTitle>Admin Panel</CardTitle>
           <CardDescription>
-            Manage your site's appearance and settings
+            Manage your site's content and settings
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid grid-cols-4 gap-4 mb-8">
+              <TabsTrigger value="content" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Content
+              </TabsTrigger>
               <TabsTrigger value="theme" className="flex items-center gap-2">
                 <Palette className="h-4 w-4" />
                 Theme
@@ -152,15 +233,187 @@ export function AdminPanel() {
                 <Settings className="h-4 w-4" />
                 Settings
               </TabsTrigger>
-              <TabsTrigger value="content" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Content
-              </TabsTrigger>
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Users
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="content">
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium">Products & Downloads</h3>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="animate-glow-primary">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingProduct ? "Edit Product" : "Add New Product"}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                          <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Name</FormLabel>
+                                <FormControl>
+                                  <Input {...field} className="hover:glow-primary focus:glow-primary" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Description</FormLabel>
+                                <FormControl>
+                                  <Textarea {...field} className="hover:glow-primary focus:glow-primary" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="price"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Price</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    type="number"
+                                    step="0.01"
+                                    className="hover:glow-primary focus:glow-primary"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="features"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Features (one per line)</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    {...field}
+                                    value={field.value?.join("\n")}
+                                    onChange={(e) =>
+                                      field.onChange(e.target.value.split("\n"))
+                                    }
+                                    className="hover:glow-primary focus:glow-primary"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <Button
+                            type="submit"
+                            className="w-full animate-glow-primary"
+                            disabled={
+                              createProductMutation.isPending ||
+                              updateProductMutation.isPending
+                            }
+                          >
+                            {editingProduct ? "Update Product" : "Add Product"}
+                          </Button>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {products.map((product) => (
+                    <motion.div
+                      key={product.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Card className="hover:shadow-lg transition-shadow hover:glow-primary">
+                        <CardHeader>
+                          <div className="flex justify-between">
+                            <CardTitle>{product.name}</CardTitle>
+                            <div className="space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setEditingProduct(product);
+                                  form.reset({
+                                    name: product.name,
+                                    description: product.description,
+                                    price: Number(product.price),
+                                    features: product.features || [],
+                                  });
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  if (confirm("Are you sure you want to delete this product?")) {
+                                    deleteProductMutation.mutate(product.id);
+                                  }
+                                }}
+                                className="text-red-500 hover:text-red-600"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="24"
+                                  height="24"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="h-4 w-4"
+                                >
+                                  <path d="M3 6h18" />
+                                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                </svg>
+                              </Button>
+                            </div>
+                          </div>
+                          <CardDescription>{product.description}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold mb-2">${product.price}</p>
+                          <div className="space-y-2">
+                            {product.features?.map((feature, index) => (
+                              <div key={index} className="flex items-center">
+                                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                <span>{feature}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
 
             <TabsContent value="theme">
               <Form {...themeForm}>
@@ -302,135 +555,6 @@ export function AdminPanel() {
               </Form>
             </TabsContent>
 
-            <TabsContent value="content">
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">Products & Downloads</h3>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add New
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Add New Content</DialogTitle>
-                      </DialogHeader>
-                      <Form {...contentForm}>
-                        <form onSubmit={contentForm.handleSubmit(onContentSubmit)} className="space-y-4">
-                          <FormField
-                            control={contentForm.control}
-                            name="title"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Title</FormLabel>
-                                <FormControl>
-                                  <Input {...field} className="hover:glow-primary focus:glow-primary" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={contentForm.control}
-                            name="description"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Description</FormLabel>
-                                <FormControl>
-                                  <Textarea {...field} className="hover:glow-primary focus:glow-primary" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={contentForm.control}
-                            name="imageUrl"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Image URL</FormLabel>
-                                <FormControl>
-                                  <div className="flex gap-2">
-                                    <Input {...field} className="hover:glow-primary focus:glow-primary" />
-                                    <Button variant="outline" size="icon">
-                                      <ImageIcon className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <div className="flex gap-4">
-                            <FormField
-                              control={contentForm.control}
-                              name="price"
-                              render={({ field }) => (
-                                <FormItem className="flex-1">
-                                  <FormLabel>Price</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} className="hover:glow-primary focus:glow-primary" />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={contentForm.control}
-                              name="version"
-                              render={({ field }) => (
-                                <FormItem className="flex-1">
-                                  <FormLabel>Version</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} className="hover:glow-primary focus:glow-primary" />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          <FormField
-                            control={contentForm.control}
-                            name="downloadUrl"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Download URL</FormLabel>
-                                <FormControl>
-                                  <Input {...field} className="hover:glow-primary focus:glow-primary" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <Button type="submit" className="w-full animate-glow-primary">Save Content</Button>
-                        </form>
-                      </Form>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card className="hover:shadow-lg transition-shadow hover:glow-primary">
-                    <CardHeader>
-                      <div className="flex justify-between">
-                        <CardTitle>Basic Package</CardTitle>
-                        <Button variant="ghost" size="icon">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <CardDescription>Essential features for small teams</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-2xl font-bold mb-2">$9.99/mo</p>
-                      <p className="text-sm text-muted-foreground">Version: 1.0.0</p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </TabsContent>
-
             <TabsContent value="users">
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -452,5 +576,24 @@ export function AdminPanel() {
         </CardContent>
       </Card>
     </motion.div>
+  );
+}
+
+function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
   );
 }
