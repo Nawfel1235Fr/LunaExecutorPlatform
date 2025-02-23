@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
   const [autoUpdate, setAutoUpdate] = useState(false);
+  const [language, setLanguage] = useState('fr');
 
   const saveSettings = () => {
     toast({
@@ -104,6 +105,29 @@ export default function SettingsPage() {
                     checked={autoUpdate}
                     onCheckedChange={setAutoUpdate}
                   />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Langue / Language</CardTitle>
+                <CardDescription>
+                  Choisissez votre langue préférée / Choose your preferred language
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center space-x-4">
+                  <select 
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="fr">Français</option>
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                    <option value="de">Deutsch</option>
+                  </select>
                 </div>
               </CardContent>
             </Card>
