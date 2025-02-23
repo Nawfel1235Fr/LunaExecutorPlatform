@@ -65,6 +65,12 @@ export const insertProductSchema = createInsertSchema(products)
   .extend({
     features: z.array(z.string()),
     price: z.number().min(0),
+    badge: z.string().optional(),
+    badgeVariant: z.string().optional(),
+    buttonText: z.string().optional(),
+    buttonVariant: z.string().optional(),
+    version: z.string().optional(),
+    downloadUrl: z.string().url().optional(),
   });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

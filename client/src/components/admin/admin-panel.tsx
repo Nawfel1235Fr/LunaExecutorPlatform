@@ -136,6 +136,12 @@ export function AdminPanel() {
       description: "",
       price: 0,
       features: [],
+      badge: "",
+      badgeVariant: "",
+      buttonText: "Télécharger",
+      buttonVariant: "bg-blue-500 hover:bg-blue-600",
+      version: "",
+      downloadUrl: "",
     },
   });
 
@@ -263,7 +269,7 @@ export function AdminPanel() {
                             name="name"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Name</FormLabel>
+                                <FormLabel>Nom</FormLabel>
                                 <FormControl>
                                   <Input {...field} className="hover:glow-primary focus:glow-primary" />
                                 </FormControl>
@@ -284,30 +290,114 @@ export function AdminPanel() {
                               </FormItem>
                             )}
                           />
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="price"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Prix</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      type="number"
+                                      step="0.01"
+                                      className="hover:glow-primary focus:glow-primary"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="version"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Version</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} className="hover:glow-primary focus:glow-primary" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
                           <FormField
                             control={form.control}
-                            name="price"
+                            name="downloadUrl"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Price</FormLabel>
+                                <FormLabel>URL de téléchargement</FormLabel>
                                 <FormControl>
-                                  <Input
-                                    {...field}
-                                    type="number"
-                                    step="0.01"
-                                    className="hover:glow-primary focus:glow-primary"
-                                  />
+                                  <Input {...field} type="url" className="hover:glow-primary focus:glow-primary" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="badge"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Badge</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="ex: Nouveau" className="hover:glow-primary focus:glow-primary" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="badgeVariant"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Style du badge</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="ex: bg-green-500 text-white" className="hover:glow-primary focus:glow-primary" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="buttonText"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Texte du bouton</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="ex: Télécharger" className="hover:glow-primary focus:glow-primary" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="buttonVariant"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Style du bouton</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="ex: bg-blue-500 hover:bg-blue-600" className="hover:glow-primary focus:glow-primary" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
                           <FormField
                             control={form.control}
                             name="features"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Features (one per line)</FormLabel>
+                                <FormLabel>Fonctionnalités (une par ligne)</FormLabel>
                                 <FormControl>
                                   <Textarea
                                     {...field}
@@ -330,7 +420,7 @@ export function AdminPanel() {
                               updateProductMutation.isPending
                             }
                           >
-                            {editingProduct ? "Update Product" : "Add Product"}
+                            {editingProduct ? "Mettre à jour le produit" : "Ajouter le produit"}
                           </Button>
                         </form>
                       </Form>
@@ -361,6 +451,13 @@ export function AdminPanel() {
                                     description: product.description,
                                     price: Number(product.price),
                                     features: product.features || [],
+                                    badge: product.badge || "",
+                                    badgeVariant: product.badgeVariant || "",
+                                    buttonText: product.buttonText || "Télécharger",
+                                    buttonVariant: product.buttonVariant || "bg-blue-500 hover:bg-blue-600",
+                                    version: product.version || "",
+                                    downloadUrl: product.downloadUrl || "",
+
                                   });
                                 }}
                               >
