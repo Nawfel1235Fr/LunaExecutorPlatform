@@ -29,8 +29,17 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Palette, Users, Settings } from "lucide-react";
+import { Palette, Users, Settings, FileText, Plus, Pencil, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
 
 const themeSchema = z.object({
   primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, {
@@ -46,12 +55,23 @@ const siteSettingsSchema = z.object({
   contactEmail: z.string().email(),
 });
 
+const contentSchema = z.object({
+  title: z.string().min(1),
+  description: z.string(),
+  price: z.string().optional(),
+  imageUrl: z.string().url().optional(),
+  version: z.string().optional(),
+  downloadUrl: z.string().url().optional(),
+});
+
 type ThemeSettings = z.infer<typeof themeSchema>;
 type SiteSettings = z.infer<typeof siteSettingsSchema>;
+type ContentFormData = z.infer<typeof contentSchema>;
 
 export function AdminPanel() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("theme");
+  const [editingItem, setEditingItem] = useState<ContentFormData | null>(null);
 
   const themeForm = useForm<ThemeSettings>({
     resolver: zodResolver(themeSchema),
@@ -71,6 +91,18 @@ export function AdminPanel() {
     },
   });
 
+  const contentForm = useForm<ContentFormData>({
+    resolver: zodResolver(contentSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      price: "",
+      imageUrl: "",
+      version: "",
+      downloadUrl: "",
+    },
+  });
+
   const onThemeSubmit = (data: ThemeSettings) => {
     toast({
       title: "Theme updated",
@@ -87,11 +119,20 @@ export function AdminPanel() {
     console.log("Site settings:", data);
   };
 
+  const onContentSubmit = (data: ContentFormData) => {
+    toast({
+      title: "Content updated",
+      description: "The content has been updated successfully.",
+    });
+    console.log("Content data:", data);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
+      className="space-y-8"
     >
       <Card>
         <CardHeader>
@@ -102,7 +143,7 @@ export function AdminPanel() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-3 gap-4 mb-8">
+            <TabsList className="grid grid-cols-4 gap-4 mb-8">
               <TabsTrigger value="theme" className="flex items-center gap-2">
                 <Palette className="h-4 w-4" />
                 Theme
@@ -110,6 +151,10 @@ export function AdminPanel() {
               <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
                 Settings
+              </TabsTrigger>
+              <TabsTrigger value="content" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Content
               </TabsTrigger>
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
@@ -194,7 +239,7 @@ export function AdminPanel() {
                   />
 
                   <Button type="submit" className="w-full">
-                    <Paintbrush className="mr-2 h-4 w-4" />
+                    <Palette className="mr-2 h-4 w-4" />
                     Update Theme
                   </Button>
                 </form>
@@ -255,6 +300,135 @@ export function AdminPanel() {
                   </Button>
                 </form>
               </Form>
+            </TabsContent>
+
+            <TabsContent value="content">
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium">Products & Downloads</h3>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Add New Content</DialogTitle>
+                      </DialogHeader>
+                      <Form {...contentForm}>
+                        <form onSubmit={contentForm.handleSubmit(onContentSubmit)} className="space-y-4">
+                          <FormField
+                            control={contentForm.control}
+                            name="title"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Title</FormLabel>
+                                <FormControl>
+                                  <Input {...field} className="hover:glow-primary focus:glow-primary" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={contentForm.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Description</FormLabel>
+                                <FormControl>
+                                  <Textarea {...field} className="hover:glow-primary focus:glow-primary" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={contentForm.control}
+                            name="imageUrl"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Image URL</FormLabel>
+                                <FormControl>
+                                  <div className="flex gap-2">
+                                    <Input {...field} className="hover:glow-primary focus:glow-primary" />
+                                    <Button variant="outline" size="icon">
+                                      <ImageIcon className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <div className="flex gap-4">
+                            <FormField
+                              control={contentForm.control}
+                              name="price"
+                              render={({ field }) => (
+                                <FormItem className="flex-1">
+                                  <FormLabel>Price</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} className="hover:glow-primary focus:glow-primary" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={contentForm.control}
+                              name="version"
+                              render={({ field }) => (
+                                <FormItem className="flex-1">
+                                  <FormLabel>Version</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} className="hover:glow-primary focus:glow-primary" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <FormField
+                            control={contentForm.control}
+                            name="downloadUrl"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Download URL</FormLabel>
+                                <FormControl>
+                                  <Input {...field} className="hover:glow-primary focus:glow-primary" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <Button type="submit" className="w-full animate-glow-primary">Save Content</Button>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card className="hover:shadow-lg transition-shadow hover:glow-primary">
+                    <CardHeader>
+                      <div className="flex justify-between">
+                        <CardTitle>Basic Package</CardTitle>
+                        <Button variant="ghost" size="icon">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <CardDescription>Essential features for small teams</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold mb-2">$9.99/mo</p>
+                      <p className="text-sm text-muted-foreground">Version: 1.0.0</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="users">
