@@ -11,3 +11,47 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .hover\:glow-primary:hover {
+    box-shadow: 0 0 15px theme('colors.blue.500');
+    transition: box-shadow 0.3s ease-in-out;
+  }
+
+  .focus\:glow-primary:focus {
+    box-shadow: 0 0 15px theme('colors.blue.500');
+    outline: none;
+  }
+
+  .animate-glow-primary {
+    animation: glow-primary 2s ease-in-out infinite;
+  }
+
+  @keyframes glow-primary {
+    0%, 100% {
+      box-shadow: 0 0 5px theme('colors.blue.500');
+    }
+    50% {
+      box-shadow: 0 0 20px theme('colors.blue.500'),
+                 0 0 30px theme('colors.blue.400');
+    }
+  }
+
+  .hover\:scale-up:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .hover\:bounce:hover {
+    animation: bounce 0.5s ease-in-out;
+  }
+
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+}
