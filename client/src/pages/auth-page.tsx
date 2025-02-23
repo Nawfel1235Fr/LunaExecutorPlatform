@@ -48,6 +48,13 @@ export default function AuthPage() {
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
       
       <Card className="relative w-full max-w-4xl mx-4 grid md:grid-cols-2 overflow-hidden">
+        <Button 
+          variant="ghost" 
+          className="absolute top-4 left-4 text-primary-foreground z-10"
+          onClick={() => window.location.href = '/'}
+        >
+          Retour à l'accueil
+        </Button>
         <div className="p-6 flex flex-col justify-center space-y-6 bg-primary text-primary-foreground">
           <h1 className="text-3xl font-bold">Welcome to LunaExecutor</h1>
           <p className="text-lg opacity-90">

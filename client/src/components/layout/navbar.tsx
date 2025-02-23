@@ -63,7 +63,7 @@ export function Navbar() {
   );
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border animate-fadeOut">
       <div className="container flex h-14 items-center">
         {/* Mobile Navigation Button */}
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -102,8 +102,11 @@ export function Navbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() => logoutMutation.mutate()}
-                className="cursor-pointer"
+                onClick={() => {
+                  const navbar = document.querySelector('nav');
+                  navbar?.classList.add('animate-fadeOut');
+                  setTimeout(() => logoutMutation.mutate(), 500);
+                }}
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
