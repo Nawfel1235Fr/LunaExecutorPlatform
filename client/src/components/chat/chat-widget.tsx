@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { MessageSquare, X } from "lucide-react";
 import { ChatMessage } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 export function ChatWidget() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -17,20 +19,49 @@ export function ChatWidget() {
   useEffect(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws`;
-    wsRef.current = new WebSocket(wsUrl);
 
-    wsRef.current.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      setMessages((prev) => [...prev, message]);
+    const connectWebSocket = () => {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log("WebSocket connected");
+      };
+
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        setMessages((prev) => [...prev, message]);
+      };
+
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        toast({
+          title: "Connection error",
+          description: "Unable to connect to chat service",
+          variant: "destructive",
+        });
+      };
+
+      ws.onclose = () => {
+        console.log("WebSocket disconnected. Trying to reconnect...");
+        setTimeout(connectWebSocket, 5000);
+      };
     };
+
+    connectWebSocket();
 
     // Load chat history
     fetch("/api/chat/history")
       .then((res) => res.json())
-      .then(setMessages);
+      .then(setMessages)
+      .catch(console.error);
 
-    return () => wsRef.current?.close();
-  }, []);
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [toast]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -40,9 +71,9 @@ export function ChatWidget() {
     if (!input.trim() || !wsRef.current) return;
 
     const message = {
-      userId: user!.id,
+      userId: user?.id || 0,
       content: input,
-      isAdmin: user!.isAdmin,
+      isAdmin: user?.isAdmin || false,
     };
 
     wsRef.current.send(JSON.stringify(message));
@@ -78,12 +109,12 @@ export function ChatWidget() {
           <div
             key={i}
             className={`flex ${
-              msg.userId === user!.id ? "justify-end" : "justify-start"
+              msg.userId === user?.id ? "justify-end" : "justify-start"
             }`}
           >
             <div
               className={`rounded-lg px-3 py-2 max-w-[80%] ${
-                msg.userId === user!.id
+                msg.userId === user?.id
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted"
               }`}
