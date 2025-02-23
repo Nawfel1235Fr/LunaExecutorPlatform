@@ -1,4 +1,4 @@
-import { users, chatMessages, userStats, User, InsertUser, ChatMessage, UserStat } from "@shared/schema";
+import { users, chatMessages, userStats, products, User, InsertUser, ChatMessage, UserStat, Product, InsertProduct } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc } from "drizzle-orm";
 import session from "express-session";
@@ -17,6 +17,11 @@ export interface IStorage {
   saveChatMessage(message: Omit<ChatMessage, "id">): Promise<ChatMessage>;
   getChatHistory(limit?: number): Promise<ChatMessage[]>;
   getUserStats(userId: number): Promise<UserStat[]>;
+  getProducts(): Promise<Product[]>;
+  getProduct(id: number): Promise<Product | undefined>;
+  createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: number, data: Partial<Product>): Promise<Product>;
+  deleteProduct(id: number): Promise<void>;
   sessionStore: session.Store;
 }
 
@@ -89,6 +94,41 @@ export class DatabaseStorage implements IStorage {
       .from(userStats)
       .where(eq(userStats.userId, userId))
       .orderBy(asc(userStats.date));
+  }
+
+  async getProducts(): Promise<Product[]> {
+    return await db.select().from(products);
+  }
+
+  async getProduct(id: number): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product;
+  }
+
+  async createProduct(product: InsertProduct): Promise<Product> {
+    const [newProduct] = await db.insert(products)
+      .values({
+        ...product,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return newProduct;
+  }
+
+  async updateProduct(id: number, data: Partial<Product>): Promise<Product> {
+    const [product] = await db.update(products)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(products.id, id))
+      .returning();
+    return product;
+  }
+
+  async deleteProduct(id: number): Promise<void> {
+    await db.delete(products).where(eq(products.id, id));
   }
 }
 
