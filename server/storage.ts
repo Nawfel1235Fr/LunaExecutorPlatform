@@ -1,9 +1,11 @@
-import { User, InsertUser, ChatMessage, UserStat } from "@shared/schema";
+import { users, chatMessages, userStats, User, InsertUser, ChatMessage, UserStat } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, asc } from "drizzle-orm";
 import session from "express-session";
-import createMemoryStore from "memorystore";
-import { randomBytes } from "crypto";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -18,106 +20,76 @@ export interface IStorage {
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private chatMessages: Map<number, ChatMessage>;
-  private userStats: Map<number, UserStat[]>;
-  private currentId: number;
-  private currentChatId: number;
-  private currentStatId: number;
+export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.chatMessages = new Map();
-    this.userStats = new Map();
-    this.currentId = 1;
-    this.currentChatId = 1;
-    this.currentStatId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find((user) => user.email === email);
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const verificationToken = randomBytes(32).toString("hex");
-    const now = new Date();
-    const user: User = {
+    const [user] = await db.insert(users).values({
       ...insertUser,
-      id,
-      isVerified: false,
-      isAdmin: false,
-      verificationToken,
-      memberSince: now,
-      lastLogin: now,
+      memberSince: new Date(),
+      lastLogin: new Date(),
       taskCount: 0,
       successRate: 100,
-    };
-    this.users.set(id, user);
-
-    // Initialize user stats
-    this.userStats.set(id, [
-      {
-        id: this.currentStatId++,
-        userId: id,
-        date: now,
-        executionsCount: 0,
-        successCount: 0,
-        failureCount: 0,
-      }
-    ]);
-
+    }).returning();
     return user;
   }
 
   async verifyUser(id: number): Promise<void> {
-    const user = await this.getUser(id);
-    if (user) {
-      user.isVerified = true;
-      user.verificationToken = null;
-      this.users.set(id, user);
-    }
+    await db.update(users)
+      .set({ isVerified: true, verificationToken: null })
+      .where(eq(users.id, id));
   }
 
   async updateUser(id: number, data: Partial<User>): Promise<User> {
-    const user = await this.getUser(id);
-    if (!user) throw new Error("User not found");
-    const updatedUser = { ...user, ...data };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    const [user] = await db.update(users)
+      .set(data)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
 
   async saveChatMessage(message: Omit<ChatMessage, "id">): Promise<ChatMessage> {
-    const id = this.currentChatId++;
-    const chatMessage = { ...message, id };
-    this.chatMessages.set(id, chatMessage);
+    const [chatMessage] = await db.insert(chatMessages)
+      .values(message)
+      .returning();
     return chatMessage;
   }
 
   async getChatHistory(limit = 50): Promise<ChatMessage[]> {
-    return Array.from(this.chatMessages.values())
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-      .slice(0, limit);
+    return await db.select()
+      .from(chatMessages)
+      .orderBy(desc(chatMessages.timestamp))
+      .limit(limit);
   }
 
   async getUserStats(userId: number): Promise<UserStat[]> {
-    return this.userStats.get(userId) || [];
+    return await db.select()
+      .from(userStats)
+      .where(eq(userStats.userId, userId))
+      .orderBy(asc(userStats.date));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
