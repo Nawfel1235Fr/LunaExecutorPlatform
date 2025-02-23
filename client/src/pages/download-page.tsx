@@ -3,9 +3,41 @@ import { ChatWidget } from "@/components/chat/chat-widget";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { Download, Monitor, Apple, Terminal } from "lucide-react";
+import { Download } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Product } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DownloadPage() {
+  const { toast } = useToast();
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ["/api/products"],
+  });
+
+  const handleDownload = (product: Product) => {
+    if (!product.downloadUrl) {
+      toast({
+        title: "Téléchargement non disponible",
+        description: "Le lien de téléchargement n'est pas encore disponible pour ce produit.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Créer un lien temporaire pour le téléchargement
+    const link = document.createElement('a');
+    link.href = product.downloadUrl;
+    link.download = `${product.name}-${product.version}.exe`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Téléchargement démarré",
+      description: `${product.name} va commencer à se télécharger.`,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -16,28 +48,40 @@ export default function DownloadPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-3xl font-bold mb-8">Download LunaExecutor</h1>
+          <h1 className="text-3xl font-bold mb-8">Télécharger LunaExecutor</h1>
 
           <Card className="p-6 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {downloads.map((download, index) => (
+              {products.map((product, index) => (
                 <motion.div
-                  key={download.platform}
+                  key={product.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="flex flex-col items-center text-center p-6 rounded-lg border bg-card"
+                  className="flex flex-col items-center text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow hover:glow-primary"
                 >
-                  <download.icon className="h-12 w-12 mb-4 text-blue-500" />
+                  {product.badge && (
+                    <span className={`px-2 py-1 rounded text-xs mb-4 ${product.badgeVariant || 'bg-blue-500 text-white'}`}>
+                      {product.badge}
+                    </span>
+                  )}
                   <h2 className="text-xl font-semibold mb-2">
-                    {download.platform}
+                    {product.name}
                   </h2>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {download.version}
+                    Version {product.version}
                   </p>
-                  <Button className="w-full">
+                  <div className="flex-grow space-y-2 mb-4">
+                    {product.features?.map((feature, i) => (
+                      <p key={i} className="text-sm">• {feature}</p>
+                    ))}
+                  </div>
+                  <Button 
+                    className={`w-full ${product.buttonVariant || 'bg-blue-500 hover:bg-blue-600'}`}
+                    onClick={() => handleDownload(product)}
+                  >
                     <Download className="mr-2 h-4 w-4" />
-                    Download
+                    {product.buttonText || 'Télécharger'}
                   </Button>
                 </motion.div>
               ))}
@@ -45,7 +89,7 @@ export default function DownloadPage() {
           </Card>
 
           <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">System Requirements</h2>
+            <h2 className="text-xl font-semibold mb-4">Configuration Requise</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {requirements.map((req, index) => (
                 <motion.div
@@ -72,50 +116,32 @@ export default function DownloadPage() {
   );
 }
 
-const downloads = [
-  {
-    platform: "Windows",
-    version: "v1.0.0",
-    icon: Monitor,
-  },
-  {
-    platform: "macOS",
-    version: "v1.0.0",
-    icon: Apple,
-  },
-  {
-    platform: "Linux",
-    version: "v1.0.0",
-    icon: Terminal,
-  },
-];
-
 const requirements = [
   {
     platform: "Windows",
     specs: [
-      "Windows 10 or later",
+      "Windows 10 ou plus récent",
       "4GB RAM minimum",
-      "2GB free disk space",
-      "Intel Core i3 or equivalent",
+      "2GB d'espace disque libre",
+      "Intel Core i3 ou équivalent",
     ],
   },
   {
     platform: "macOS",
     specs: [
-      "macOS 11 or later",
+      "macOS 11 ou plus récent",
       "4GB RAM minimum",
-      "2GB free disk space",
-      "Apple M1 or Intel processor",
+      "2GB d'espace disque libre",
+      "Apple M1 ou processeur Intel",
     ],
   },
   {
     platform: "Linux",
     specs: [
-      "Ubuntu 20.04 or equivalent",
+      "Ubuntu 20.04 ou équivalent",
       "4GB RAM minimum",
-      "2GB free disk space",
-      "Intel Core i3 or equivalent",
+      "2GB d'espace disque libre",
+      "Intel Core i3 ou équivalent",
     ],
   },
 ];
