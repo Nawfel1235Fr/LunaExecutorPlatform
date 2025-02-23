@@ -21,6 +21,7 @@ import {
   Download,
   LogOut,
   Menu,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -36,6 +37,9 @@ export function Navbar() {
     { href: "/settings", icon: Settings, label: "Settings" },
     { href: "/products", icon: Package, label: "Products" },
     { href: "/download", icon: Download, label: "Download" },
+    ...(user?.isAdmin ? [
+      { href: "/admin", icon: Shield, label: "Admin Panel" }
+    ] : []),
   ];
 
   const NavLinks = () => (

@@ -12,6 +12,7 @@ import ProfilePage from "@/pages/profile-page";
 import SettingsPage from "@/pages/settings-page";
 import ProductsPage from "@/pages/products-page";
 import DownloadPage from "@/pages/download-page";
+import { AdminPanel } from "@/components/admin/admin-panel";
 
 function Router() {
   return (
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/settings" component={SettingsPage} />
       <Route path="/products" component={ProductsPage} />
       <Route path="/download" component={DownloadPage} />
+      <Route path="/admin" component={AdminPanel} />
       <Route component={NotFound} />
     </Switch>
   );
